@@ -127,7 +127,7 @@ void CMenu::Render()
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, AccentColor.x());
     ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, AccentColor.x());
 
-    ImGui::Begin("NerdiewareFortnite", NULL, window_flags);
+    ImGui::Begin("Stinkcheat", NULL, window_flags);
     {
 
         auto draw = ImGui::GetForegroundDrawList();
@@ -144,8 +144,8 @@ void CMenu::Render()
         ImGui::PushFontShadow(IM_COL32(0, 0, 0, 255));
 
         ImGui::PushStyleColor(ImGuiCol_Text, AccentColor.x());
-        AlignForWidth(ImGui::CalcTextSize("poophack").x);
-        ImGui::Text("poophack");
+        AlignForWidth(ImGui::CalcTextSize("stinkcheat").x);
+        ImGui::Text("stinkcheat");
         ImGui::PopStyleColor();
 
         ImGui::Spacing();

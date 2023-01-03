@@ -144,12 +144,13 @@ namespace UnrealEngine
 			return Memory.Read<Vector3>(Memory.Read<uintptr_t>(cast_this + 0x190) + 0x128);
 		}
 		get_member(SceneComponenet*, RootComponent, 0x190);
-		get_member(size_t, ID, 0x18);
+		get_member(uint32_t, ID, 0x18);
 		get_member(UnrealEngine::PlayerState*, PlayerState, 0x2A8);
 		get_member(UnrealEngine::Mesh*, Mesh, 0x310);
 		set_member(bool, RimlightEnabled, 0x5ec0)
 		set_member(double, RimlightMultiplier, 0x5eb8)
 		get_member(UnrealEngine::Weapon*, Weapon, 0x8d8)
+		get_member(uintptr_t, ClassPrivate, 0x10)
 	};
 
 	class PlayerController
@@ -203,6 +204,8 @@ namespace UnrealEngine
 		get_member(GameInstance*, Instance, 0x1B8);
 		get_member(PersistentLevel*, Level, 0x30);
 		get_member(uintptr_t, CameraPointer, 0x110);
+		get_member(uintptr_t, LevelList, 0x160);
+		get_member(uint32_t, LevelCount, 0x160+0x8)
 	};
 
 	// 0xe9ea3f8
@@ -286,6 +289,7 @@ namespace UnrealEngine
 		Vector3 EntityPosition;
 		bool IsSearched;
 		int Type; // 0 - chest, 1 - vehicle, 2 - pickup, 3 - other
+		int32_t Count;
 	};
 
 }

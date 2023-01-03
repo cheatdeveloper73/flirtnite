@@ -137,7 +137,7 @@ void CGlobalData::CacheEntities()
 				WRAP_IF_DEBUG(
 					std::cout << "Skipping local pawn (buffer list)!\n";
 				)
-				continue;
+					continue;
 			}
 #endif // !_DEBUG
 
@@ -165,12 +165,17 @@ void CGlobalData::CacheEntities()
 				if (Config::EnableCurrentWeaponEsp)
 				{
 					uintptr_t WeaponNamePTR = Weapon->Definition()->Name();
-					uint32_t WeaponNameLength = Memory.Read<uint32_t>(WeaponNamePTR + 0x38);
-					wchar_t* WeaponName = new wchar_t[WeaponNameLength + 1];
-					Memory._HyperV->ReadMem(Memory.Read<PVOID>(WeaponNamePTR + 0x30), WeaponName, WeaponNameLength * sizeof(wchar_t));
-					std::wstring Wide(WeaponName);
-					delete[] WeaponName;
-					CachePlayer.WeaponName = std::string(Wide.begin(), Wide.end());
+					if (!Weapon || !WeaponNamePTR)
+						CachePlayer.WeaponName = "None";
+					else
+					{
+						uint32_t WeaponNameLength = Memory.Read<uint32_t>(WeaponNamePTR + 0x38);
+						wchar_t* WeaponName = new wchar_t[WeaponNameLength + 1];
+						Memory._HyperV->ReadMem(Memory.Read<PVOID>(WeaponNamePTR + 0x30), WeaponName, WeaponNameLength * sizeof(wchar_t));
+						std::wstring Wide(WeaponName);
+						delete[] WeaponName;
+						CachePlayer.WeaponName = std::string(Wide.begin(), Wide.end());
+					}
 				}
 				if (Config::EnableConsoleEsp)
 				{
@@ -188,60 +193,12 @@ void CGlobalData::CacheEntities()
 					std::cout << "Added player to the list!\n";
 				)
 
-				continue;
+					continue;
 
 			}
-
-			UnrealEngine::CCachedEntity Entity;
-			Entity.EntityPosition = Pawn->RelativeLocation();
-			Entity.EntityName = "Entity";
-			TmpEntityCache.emplace_back(Entity);
-			continue;
-
-
-			//if (PawnName == hashes::FortPickupAthena || PawnName == hashes::Tiered_Ammo || PawnName == hashes::Tiered_Chest || PawnName == hashes::Vehicle)
-			//{
-
-			//	UnrealEngine::CCachedEntity Entity;
-			//	Entity.EntityPosition = Pawn->RelativeLocation();
-
-			//	switch (PawnName)
-			//	{
-			//	case hashes::FortPickupAthena:
-			//	{
-			//		Entity.EntityName = "Some Drop";
-			//		Entity.IsSearched = false;
-			//		Entity.Type = 2;
-			//		break;
-			//	}
-			//	case hashes::Tiered_Ammo:
-			//	{
-			//		Entity.EntityName = "Ammo Box";
-			//		Entity.IsSearched = false;
-			//		Entity.Type = 3;
-			//		break;
-			//	}
-			//	case hashes::Tiered_Chest:
-			//	{
-			//		Entity.EntityName = "Golden Chest";
-			//		Entity.IsSearched = false;
-			//		Entity.Type = 0;
-			//		break;
-			//	}
-			//	case hashes::Vehicle:
-			//	{
-			//		Entity.EntityName = "Vehicle";
-			//		Entity.IsSearched = false;
-			//		Entity.Type = 1;
-			//		break;
-			//	}
-			//	}
-
-			//	TmpEntityCache.emplace_back(Entity);
-
-			//}
-
 		}
+
+
 
 		PlayerSync.lock();
 		Players.clear();

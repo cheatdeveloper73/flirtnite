@@ -17,7 +17,7 @@ public:
     ImFont* medium;
     ImFont* bold;
 
-    Color AccentColor = Color{};
+    Color AccentColor = Color{0.664f, 0.395f, 0.889f, 1.f};
 
     float anim_speed = 0.05f, m_alpha = 1.f;
 

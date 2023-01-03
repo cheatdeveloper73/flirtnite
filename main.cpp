@@ -302,7 +302,7 @@ int main()
 
 			std::stringstream ss;
 
-			ss << "poophack ~ ";
+			ss << "stinkcheat ~ ";
 			ss << "fps / " << static_cast<int>(ImGui::GetIO().Framerate);
 
 			ImGui::SetNextWindowPos(ImVec2(5, 5));
