@@ -152,5 +152,6 @@ UnrealEngine::FMinimalViewInfo DecryptCamera()
 	}
 
 	delete[] a2;
+	decrypted_camera.Rotation.z = 0.f;
 	return decrypted_camera;
 }

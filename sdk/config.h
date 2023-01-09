@@ -40,13 +40,15 @@ namespace Config
 	inline bool EnableNameEsp = false;
 	inline bool EnableBoxEsp = false;
 	inline int BoxEspStyle = 0;
-	inline bool Enable3DBoxes = false;
+	inline bool BoxesUseBounds = false;
 	inline bool EnableConsoleEsp = false;
 	inline bool EnableSkeletonEsp = false;
 	inline bool EnableCurrentWeaponEsp = false;
 	inline bool EnableDistanceEsp = true;
 	inline bool EnableSnaplines = true;
 	inline int SnaplineStart = 0;
+
+	inline bool EnableWidescreenCompat = false;
 
 	inline bool EnableBotCheck = true;
 	inline bool EnableTeamCheck = true;
@@ -73,6 +75,9 @@ namespace Config
 	inline CKeybind SpinbotKey{ "enable spinbot" };
 	inline bool EnableNoRecoil = false;
 	inline bool EnableNoSpread = false;
+	inline bool EnableSpeedhack = false;
+	inline float SpeedhackAmount = 1.f;
+	inline float FOVChange = 90.f;
 
 	inline bool EnableAimbot = false;
 	inline bool EnableAimbotSmoothing = true;
@@ -85,7 +90,7 @@ namespace Config
 	inline Color FOVColor{ 0.f, 0.f, 1.f, 1.f };
 	inline bool ShowFOV = true;
 
-	inline CKeybind AimbotKey{ "enable aimbot" };
+	inline CKeybind AimbotKey{ "aimbot key" };
 
 	inline bool EnableWatermark = true;
 	inline bool EnableCrosshair = true;
@@ -93,5 +98,11 @@ namespace Config
 	inline bool KeybindList = true;
 	inline Color CrosshairColor{ 1.f, 1.f, 1.f, 1.f };
 	inline bool EnableInstantWeaponDeploy = false;
+
+#ifdef _DEBUG
+	inline std::string Username = "Debug";
+#else
+	inline std::string Username;
+#endif
 
 }

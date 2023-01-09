@@ -87,11 +87,11 @@ bool COverlay::InitWindows(HWND GameHwnd)
 	GameRect.top = Cord.y;
 	m_pWidth = static_cast<float>(GameRect.right);
 	m_pHeight = static_cast<float>(GameRect.bottom);
-	m_hWndOverlay = CreateWindowExW(0, strOverlayClass.c_str(), strOverlayTitle.c_str(), WS_POPUP | WS_VISIBLE, static_cast<int>(GameRect.left - 5.f), static_cast<int>(GameRect.top - 5.f), static_cast<int>(m_pWidth + 5.f), static_cast<int>(m_pHeight + 5.f), 0, NULL, NULL, NULL);
+	m_hWndOverlay = CreateWindowExW(0, strOverlayClass.c_str(), strOverlayTitle.c_str(), WS_POPUP | WS_VISIBLE, static_cast<int>(GameRect.left - 3.f), static_cast<int>(GameRect.top - 3.f), static_cast<int>(m_pWidth + 3.f), static_cast<int>(m_pHeight + 3.f), 0, NULL, NULL, NULL);
 	if (!m_hWndOverlay)
 		return false;
 
-	static MARGINS DWMMargins = { static_cast<int>(GameRect.left - 5.f), static_cast<int>(GameRect.top - 5.f), static_cast<int>(m_pWidth + 5.f), static_cast<int>(m_pHeight + 5.f) };
+	static MARGINS DWMMargins = { static_cast<int>(GameRect.left - 3.f), static_cast<int>(GameRect.top - 3.f), static_cast<int>(m_pWidth + 3.f), static_cast<int>(m_pHeight + 3.f) };
 	if (FAILED(DwmExtendFrameIntoClientArea(m_hWndOverlay, &DWMMargins)))
 	{
 		silent_fail("ERR: 0x5000000");
@@ -110,6 +110,8 @@ bool COverlay::InitWindows(HWND GameHwnd)
 		silent_fail("ERR: 0x7000000");
 		return false;
 	}
+
+	//SetWindowLong(m_hWndOverlay, GWL_EXSTYLE, WS_EX_LAYERED | WS_EX_TRANSPARENT);
 
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();

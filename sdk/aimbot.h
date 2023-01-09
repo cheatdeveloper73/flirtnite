@@ -17,6 +17,7 @@ public:
 	bool Validated = false;
 	Vector2 AimPOS;
 	int BoneID;
+	Vector3 VecAimPos;
 };
 
 class CAimbot : public Singleton<CAimbot>

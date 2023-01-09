@@ -10,7 +10,9 @@ struct FTransform
 
 	FQuat rot;
 	Vector3 translation;
+	uint32_t pad1;
 	Vector3 scale;
+	uint32_t pad2;
 
 	D3DMATRIX ToMatrixWithScale()
 	{
@@ -19,29 +21,29 @@ struct FTransform
 		m._42 = translation.y;
 		m._43 = translation.z;
 
-		float x2 = rot.x + rot.x;
-		float y2 = rot.y + rot.y;
-		float z2 = rot.z + rot.z;
+		float x2 = rot.X + rot.X;
+		float y2 = rot.Y + rot.Y;
+		float z2 = rot.Z + rot.Z;
 
-		float xx2 = rot.x * x2;
-		float yy2 = rot.y * y2;
-		float zz2 = rot.z * z2;
+		float xx2 = rot.X * x2;
+		float yy2 = rot.Y * y2;
+		float zz2 = rot.Z * z2;
 		m._11 = (1.0f - (yy2 + zz2)) * scale.x;
 		m._22 = (1.0f - (xx2 + zz2)) * scale.y;
 		m._33 = (1.0f - (xx2 + yy2)) * scale.z;
 
-		float yz2 = rot.y * z2;
-		float wx2 = rot.w * x2;
+		float yz2 = rot.Y * z2;
+		float wx2 = rot.W * x2;
 		m._32 = (yz2 - wx2) * scale.z;
 		m._23 = (yz2 + wx2) * scale.y;
 
-		float xy2 = rot.x * y2;
-		float wz2 = rot.w * z2;
+		float xy2 = rot.X * y2;
+		float wz2 = rot.W * z2;
 		m._21 = (xy2 - wz2) * scale.y;
 		m._12 = (xy2 + wz2) * scale.x;
 
-		float xz2 = rot.x * z2;
-		float wy2 = rot.w * y2;
+		float xz2 = rot.X * z2;
+		float wy2 = rot.W * y2;
 		m._31 = (xz2 + wy2) * scale.z;
 		m._13 = (xz2 - wy2) * scale.x;
 

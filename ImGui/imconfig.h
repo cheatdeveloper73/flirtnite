@@ -104,6 +104,7 @@ namespace ImGui
 {
     inline bool custom_UseFontShadow;
     inline unsigned int custom_FontShadowColor;
+    inline bool FlaggedItem = false;
 
     inline static void PushFontShadow(unsigned int col)
     {
@@ -115,4 +116,15 @@ namespace ImGui
     {
         custom_UseFontShadow = false;
     }
+
+    inline static void PushFlagged()
+    {
+        FlaggedItem = true;
+    }
+
+    inline static void PopFlagged()
+    {
+        FlaggedItem = false;
+    }
+
 }; // namespace ImGui

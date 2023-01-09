@@ -33,7 +33,7 @@ void change_click(bool canclick)
 	}
 }
 
-bool W2S(Vector3 pos, Vector2& out)
+__forceinline bool W2S(Vector3 pos, Vector2& out)
 {
 	return UnrealEngine::WorldToScreen(pos, out, CGlobalData::Get().PlayerCamera, c_overlay->m_pWidth, c_overlay->m_pHeight);
 }
@@ -45,7 +45,7 @@ ImVec2 x(Vector3 v)
 	return ImVec2(tmp.x, tmp.y);
 }
 
-ImVec2 ProjectWorldToScreen(Vector3 p)
+__forceinline ImVec2 ProjectWorldToScreen(Vector3 p)
 {
 	Vector2 tmp;
 	W2S(p, tmp);
@@ -144,40 +144,7 @@ void ColorChange()
 	}
 }
 
-void FeatureThread()
-{
-
-	while (true)
-	{
-
-		if (CGlobalData::Get().PlayerCamera.Valid)
-		{
-
-			auto LocalPawn = (uintptr_t)CGlobalData::Get().LocalPawn;
-			auto Weapon = CGlobalData::Get().LocalPawn->Weapon();
-
-			if (Config::EnableNoSpread)
-				Memory.Write<float>((uintptr_t)Weapon + 0x64, FLT_MAX);
-
-			if (Config::EnableNoRecoil)
-				CGlobalData::Get().LocalController->Time(-1.f);
-
-			if (Config::EnableInstantWeaponDeploy)
-				Memory.Write<bool>((uintptr_t)Weapon + 0x32b, true);
-
-			CAimbot::Get().Run(c_overlay->m_pWidth, c_overlay->m_pHeight);
-
-			Sleep(1);
-
-		}
-		else
-			Sleep(1000);
-
-	}
-
-}
-
-int main()
+int main_thread()
 {
 
 	if (!Memory.Initialize())
@@ -187,7 +154,9 @@ int main()
 			std::cout << "Failed to initialize memory.\n";
 		)
 
-		return 0;
+		ERROR_MESSAGE("Failed to initialize. (Code: 0x1)");
+
+		return 1;
 	}
 
 	ImRenderer = new GRenderer();
@@ -198,7 +167,9 @@ int main()
 			std::cout << "Failed to init windows.\n";
 		)
 
-		return 0;
+		ERROR_MESSAGE("Failed to initialize. (Code: 0x2)");
+
+		return 1;
 
 	}
 
@@ -215,13 +186,15 @@ int main()
 		)
 
 	CreateThread(NULL, NULL, LPTHREAD_START_ROUTINE(EntityCacheThread), NULL, NULL, NULL);
-	CreateThread(NULL, NULL, LPTHREAD_START_ROUTINE(FeatureThread), NULL, NULL, NULL);
 
 	while (msg.message != WM_QUIT)
 	{
 
 		if (!FindWindowA("UnrealWindow", NULL))
+		{
+			Beep(1500, 3);
 			exit(0);
+		}
 
 		if (GetAsyncKeyState(VK_INSERT) & 1)
 			CMenu::Get().opened = !CMenu::Get().opened;
@@ -283,6 +256,24 @@ int main()
 		Config::AimbotKey.update();
 		Config::SpinbotKey.update();
 
+		auto LocalPawn = (uintptr_t)CGlobalData::Get().LocalPawn;
+
+		if (LocalPawn)
+		{
+
+			auto Weapon = CGlobalData::Get().LocalPawn->Weapon();
+
+			if (Config::EnableNoSpread)
+				Memory.Write<float>((uintptr_t)Weapon + 0x64, FLT_MAX);
+
+			if (Config::EnableNoRecoil)
+				CGlobalData::Get().LocalController->Time(-1.f);
+
+			if (Config::EnableInstantWeaponDeploy)
+				Memory.Write<bool>((uintptr_t)Weapon + 0x32b, true);
+
+		}
+
 		if (CMenu::Get().opened)
 		{
 			if (clickable != true)
@@ -295,14 +286,14 @@ int main()
 		{
 			if (clickable != false)
 				change_click(false);
-		}
+		}	
 
 		if (Config::EnableWatermark)
 		{
 
 			std::stringstream ss;
 
-			ss << "stinkcheat ~ ";
+			ss << Config::Username << " ~ ";
 			ss << "fps / " << static_cast<int>(ImGui::GetIO().Framerate);
 
 			ImGui::SetNextWindowPos(ImVec2(5, 5));
@@ -315,8 +306,13 @@ int main()
 
 		}
 
+		//auto _rotation = CGlobalData::Get().LocalController->RotationInput();
+
+		//std::cout << "Pitch : " << _rotation.Pitch << " Yaw : " << _rotation.Yaw << " Roll : " << _rotation.Roll << "\n";
+
 		if (CGlobalData::Get().PlayerCamera.Valid)
 		{
+
 
 			CGlobalData::Get().PlayerSync.lock();
 
@@ -327,7 +323,7 @@ int main()
 
 				if (Config::VisibleOnlyEsp && !Visible)
 					continue;
-				
+
 				Vector3 PlayerHead = Player.Mesh->GetBonePos(68);
 				float Distance = CGlobalData::Get().PlayerCamera.Location.Distance(PlayerHead) / 100.f;
 
@@ -346,12 +342,39 @@ int main()
 				if (!W2S(PlayerFoot, PlayerFootScreen))
 					continue;
 
-				int height = PlayerHeadScreen.y - PlayerFootScreen.y;
-				int width = height / 4;
-				
-				float Entity_x = PlayerFootScreen.x - width;
-				float Entity_y = PlayerFootScreen.y;
-				float Entity_w = height / 2.f;
+				int BoxX;
+				int BoxY;
+				int BoxWidth;
+				int BoxHeight;
+
+				if (Config::BoxesUseBounds)
+				{
+					UnrealEngine::FBoxSphereBounds PlayerBounds = Memory.Read<UnrealEngine::FBoxSphereBounds>((uintptr_t)Player.Mesh + 0x7c8);
+					Vector3 PlayerOrigin = Player.Pawn->RelativeLocation();
+					Vector3 BoundsMin = PlayerOrigin - PlayerBounds.BoxExtent;
+					Vector3 BoundsMax = PlayerOrigin + PlayerBounds.BoxExtent;
+					Vector2 BoundsMinScreen;
+					Vector2 BoundsMaxScreen;
+					W2S(BoundsMin, BoundsMinScreen);
+					W2S(BoundsMax, BoundsMaxScreen);
+					BoxX = BoundsMinScreen.x;
+					BoxY = BoundsMaxScreen.y;
+					BoxWidth = BoundsMaxScreen.x - BoundsMinScreen.x;
+					BoxHeight = BoundsMinScreen.y - BoundsMaxScreen.y;
+				}
+				else 
+				{
+					int height = PlayerHeadScreen.y - PlayerFootScreen.y;
+					int width = height / 4;
+
+					float Entity_x = PlayerFootScreen.x - width;
+					float Entity_y = PlayerFootScreen.y;
+					float Entity_w = height / 2;
+					BoxX = Entity_x;
+					BoxY = Entity_y;
+					BoxWidth = Entity_w;
+					BoxHeight = height;
+				}
 
 				if (Config::EnableBoxEsp && Config::BoxEspStyle == 1)
 				{
@@ -403,13 +426,13 @@ int main()
 				}
 
 				if (Config::EnableBoxEsp && Config::BoxEspStyle == 0)
-					DrawBox(ImVec2(Entity_x, Entity_y), ImVec2(Entity_w, height), Visible ? Config::BoxEspColorVisible.c() : Config::BoxEspColorInVisible.c());
+					DrawBox(ImVec2(BoxX, BoxY), ImVec2(BoxWidth, BoxHeight), Visible ? Config::BoxEspColorVisible.c() : Config::BoxEspColorInVisible.c());
 
 				if (Config::EnableBoxEsp && Config::BoxEspStyle == 2)
-					ImRenderer->DrawCornerBox(Entity_x, Entity_y, Entity_w, height, Visible ? Config::BoxEspColorVisible.c() : Config::BoxEspColorInVisible.c());
+					ImRenderer->DrawCornerBox(BoxX, BoxY, BoxWidth, BoxHeight, Visible ? Config::BoxEspColorVisible.c() : Config::BoxEspColorInVisible.c());
 
 				if (Config::EnableBoxEsp && Config::BoxEspStyle == 3)
-					ImGui::GetBackgroundDrawList()->AddRectFilled(ImVec2(Entity_x, Entity_y), ImVec2(Entity_x + Entity_w, Entity_y + height), Visible ? Config::BoxEspColorVisible.c() : Config::BoxEspColorInVisible.c());
+					ImGui::GetBackgroundDrawList()->AddRectFilled(ImVec2(BoxX, BoxY), ImVec2(BoxX + BoxWidth, BoxY + BoxHeight), Visible ? Config::BoxEspColorVisible.c() : Config::BoxEspColorInVisible.c());
 
 				std::string RealPlayerName = Config::EnableNameEsp ? Player.Name : "";
 
@@ -457,93 +480,71 @@ int main()
 
 					ImColor Color = Visible ? Config::SkeletonEspColorVisible.x() : Config::SkeletonEspColorInVisible.x();
 
-					for (int i = 0; i < 95; i++)
-					{
-						ImRenderer->DrawTextGui(std::to_string(i), x(Player.Mesh->GetBonePos(i)), 12.f, Color, true, nullptr);
-					}
+					#define B(x) Player.Mesh->GetBonePos(x)
+					#define L(from, to) ImRenderer->DrawLineEx(from, to, Color, 1.f)
 
-					//const std::array <int, 5> LeftLeg { 76, 74, 72, 71, 2 };
-					//const std::array <int, 5> RightLeg { 82, 81, 79, 78, 2 };
+					const std::array <int, 3> Torso{ 2, 67, 7 };
 
-					//const std::array <int, 4> Torso { 2, 4, 6, 8 };
+					const std::array <int, 3> LeftLeg{ 78, 79, 80 };
+					const std::array <int, 3> RightLeg{ 71, 72, 73 };
 
-					//std::array <int, 4> Head { 8, 66, 67, 68 };
+					const std::array <int, 3> LeftArm{ 35, 10, 34 };
+					const std::array <int, 3> RightArm{ 64, 39, 62 };
 
-					//std::array <int, 4> RightArm { 37, 68, 39, 62 };
-					//std::array <int, 4> LeftArm { 69, 95, 18, 33 };
+					auto TorsoOne = B(Torso[0]);
+					auto TorsoTwo = B(Torso[1]);
+					auto TorsoThree = B(Torso[2]);
 
-					//#define L(from, to) ImRenderer->DrawLineEx(from, to, Color)
+					auto TorsoOneScreen = ProjectWorldToScreen(TorsoOne);
+					auto TorsoTwoScreen = ProjectWorldToScreen(TorsoTwo);
 
-					//ImVec2 FirstLLegPos = x(Player.Mesh->GetBonePos(LeftLeg[0]));
-					//ImVec2 SecondLLegPos = x(Player.Mesh->GetBonePos(LeftLeg[1]));
-					//ImVec2 ThirdLLegPos = x(Player.Mesh->GetBonePos(LeftLeg[2]));
-					//ImVec2 FourthLLegPos = x(Player.Mesh->GetBonePos(LeftLeg[3]));
-					//ImVec2 FifthLLegPos = x(Player.Mesh->GetBonePos(LeftLeg[4]));
+					L(TorsoOneScreen, TorsoTwoScreen);
 
-					//L(FirstLLegPos, SecondLLegPos);
-					//L(SecondLLegPos, ThirdLLegPos);
-					//L(ThirdLLegPos, FourthLLegPos);
-					//L(FourthLLegPos, FifthLLegPos);
+					auto LeftLegOne = B(LeftLeg[0]);
+					auto LeftLegTwo = B(LeftLeg[1]);
+					auto LeftLegThree = B(LeftLeg[2]);
 
-					//ImVec2 FirstRLegPos = x(Player.Mesh->GetBonePos(RightLeg[0]));
-					//ImVec2 SecondRLegPos = x(Player.Mesh->GetBonePos(RightLeg[1]));
-					//ImVec2 ThirdRLegPos = x(Player.Mesh->GetBonePos(RightLeg[2]));
-					//ImVec2 FourthRLegPos = x(Player.Mesh->GetBonePos(RightLeg[3]));
-					//ImVec2 FifthRLegPos = x(Player.Mesh->GetBonePos(RightLeg[4]));
+					auto LeftLegOneScreen = ProjectWorldToScreen(LeftLegOne);
+					auto LeftLegTwoScreen = ProjectWorldToScreen(LeftLegTwo);
+					auto LeftLegThreeScreen = ProjectWorldToScreen(LeftLegThree);
 
-					//L(FirstRLegPos, SecondRLegPos);
-					//L(SecondRLegPos, ThirdRLegPos);
-					//L(ThirdRLegPos, FourthRLegPos);
-					//L(FourthRLegPos, FifthRLegPos);
+					L(TorsoOneScreen, LeftLegOneScreen);
+					L(LeftLegOneScreen, LeftLegTwoScreen);
+					L(LeftLegTwoScreen, LeftLegThreeScreen);
 
-					//ImVec2 FirstTorsoPos = x(Player.Mesh->GetBonePos(Torso[0]));
-					//ImVec2 SecondTorsoPos = x(Player.Mesh->GetBonePos(Torso[1]));
-					//ImVec2 ThirdTorsoPos = x(Player.Mesh->GetBonePos(Torso[2]));
-					//ImVec2 FourthTorsoPos = x(Player.Mesh->GetBonePos(Torso[3]));
+					auto RightLegOne = B(RightLeg[0]);
+					auto RightLegTwo = B(RightLeg[1]);
+					auto RightLegThree = B(RightLeg[2]);
 
-					//L(FirstTorsoPos, SecondTorsoPos);
-					//L(SecondTorsoPos, ThirdTorsoPos);
-					//L(ThirdTorsoPos, FourthTorsoPos);
+					auto RightLegOneScreen = ProjectWorldToScreen(RightLegOne);
+					auto RightLegTwoScreen = ProjectWorldToScreen(RightLegTwo);
+					auto RightLegThreeScreen = ProjectWorldToScreen(RightLegThree);
 
-					//ImVec2 FirstHeadPos = x(Player.Mesh->GetBonePos(Head[0]));
-					//ImVec2 SecondHeadPos = x(Player.Mesh->GetBonePos(Head[1]));
-					//ImVec2 ThirdHeadPos = x(Player.Mesh->GetBonePos(Head[2]));
-					//ImVec2 FourthHeadPos = x(Player.Mesh->GetBonePos(Head[3]));
+					L(TorsoOneScreen, RightLegOneScreen);
+					L(RightLegOneScreen, RightLegTwoScreen);
+					L(RightLegTwoScreen, RightLegThreeScreen);
 
-					//L(FirstHeadPos, SecondHeadPos);
-					//L(SecondHeadPos, ThirdHeadPos);
-					//
-					//ImVec2 FirstRArmPos = x(Player.Mesh->GetBonePos(RightArm[0]));
-					//ImVec2 SecondRArmPos = x(Player.Mesh->GetBonePos(RightArm[1]));
-					//ImVec2 ThirdRArmPos = x(Player.Mesh->GetBonePos(RightArm[2]));
-					//ImVec2 FourthRArmPos = x(Player.Mesh->GetBonePos(RightArm[3]));
+					auto LeftArmOne = B(LeftArm[0]);
+					auto LeftArmTwo = B(LeftArm[1]);
+					auto LeftArmThree = B(LeftArm[2]);
 
-					//L(FirstRArmPos, SecondRArmPos);
-					//L(SecondRArmPos, ThirdRArmPos);
-					//L(ThirdRArmPos, FourthRArmPos);
+					L(ProjectWorldToScreen(TorsoThree), ProjectWorldToScreen(LeftArmOne));
+					L(ProjectWorldToScreen(LeftArmOne), ProjectWorldToScreen(LeftArmTwo));
+					L(ProjectWorldToScreen(LeftArmTwo), ProjectWorldToScreen(LeftArmThree));
 
-					//ImVec2 FirstLArmPos = x(Player.Mesh->GetBonePos(LeftArm[0]));
-					//ImVec2 SecondLArmPos = x(Player.Mesh->GetBonePos(LeftArm[1]));
-					//ImVec2 ThirdLArmPos = x(Player.Mesh->GetBonePos(LeftArm[2]));
-					//ImVec2 FourthLArmPos = x(Player.Mesh->GetBonePos(LeftArm[3]));
+					auto RightArmOne = B(RightArm[0]);
+					auto RightArmTwo = B(RightArm[1]);
+					auto RightArmThree = B(RightArm[2]);
 
-					//L(FirstLArmPos, SecondLArmPos);
-					//L(SecondLArmPos, ThirdLArmPos);
-					//L(ThirdLArmPos, FourthLArmPos);
-
-					//ImRenderer->DrawCircle(FourthHeadPos, 26.f, Color);
+					L(ProjectWorldToScreen(TorsoThree), ProjectWorldToScreen(RightArmOne));
+					L(ProjectWorldToScreen(RightArmOne), ProjectWorldToScreen(RightArmTwo));
+					L(ProjectWorldToScreen(RightArmTwo), ProjectWorldToScreen(RightArmThree));
 
 				}
-			}
-
-			for (const auto& Entity : CGlobalData::Get().Entities)
-			{
-
-				Vector2 Pos;
-				W2S(Entity.EntityPosition, Pos);
-				ImRenderer->DrawTextGui(Entity.EntityName, ImVec2(Pos.x, Pos.y), 12.f, ImColor(255, 255, 255, 255), true, nullptr);
 
 			}
+
+			CAimbot::Get().Run(c_overlay->m_pWidth, c_overlay->m_pHeight);
 
 			CGlobalData::Get().PlayerSync.unlock();
 
@@ -650,3 +651,52 @@ int main()
 	return 1;
 
 }
+
+struct injection_data
+{
+
+	char username[255];
+	char expiry[255];
+	uintptr_t key;
+	unsigned int size;
+	char process_name[255];
+
+};
+
+#ifndef _DEBUG
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+{
+
+	if (fdwReason == DLL_PROCESS_ATTACH)
+	{
+
+		injection_data* data = reinterpret_cast<injection_data*>(lpvReserved);
+
+		if (!lpvReserved)
+			reinterpret_cast<int>(nullptr)();
+
+		if (!data)
+			reinterpret_cast<int>(nullptr)();
+
+		if (data->size != 0x4500)
+			reinterpret_cast<int>(nullptr)();
+
+		if (strcmp(data->process_name, "EpicWebHelper.exe"))
+			reinterpret_cast<int>(nullptr)();
+
+		Config::Username = data->username;
+
+		DisableThreadLibraryCalls(hinstDLL);
+		CreateThread(NULL, NULL, LPTHREAD_START_ROUTINE(main_thread), NULL, NULL, NULL);
+
+	}
+
+	return TRUE;
+
+}
+#else
+int main()
+{
+	main_thread();
+}
+#endif

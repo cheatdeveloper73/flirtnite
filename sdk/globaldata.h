@@ -25,6 +25,8 @@ namespace hashes
     const inline auto Tiered_Ammo = FNV1A::HashConst("Tiered_Ammo");
     const inline auto Vehicle = FNV1A::HashConst("Vehicle");
 
+    const inline auto FortWorldSettings = FNV1A::HashConst("FortWorldSettings");
+
 }
 
 class CGlobalData : public Singleton<CGlobalData>

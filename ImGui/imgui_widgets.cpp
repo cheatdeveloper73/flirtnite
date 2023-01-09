@@ -1121,10 +1121,18 @@ bool ImGui::Checkbox(const char* label, bool* v)
 
     window->DrawList->AddRect(check_bb.Min, check_bb.Max, IM_COL32_BLACK);
 
+    ImU32 FlaggedColor = IM_COL32(247, 200, 69, 255);
+
+    ImU32 LabelColor;
+    LabelColor = *v ? GetColorU32(ImGuiCol_Text) : GetColorU32(ImGuiCol_TextDisabled);
+
+    if (ImGui::FlaggedItem)
+        LabelColor = FlaggedColor;
+
     ImVec2 label_pos = ImVec2(check_bb.Max.x + style.ItemInnerSpacing.x, check_bb.Min.y + style.FramePadding.y);
     ImGui::PushFontShadow(IM_COL32(0, 0, 0, 255));     
     if (label_size.x > 0.0f)
-        window->DrawList->AddText(g.Font, g.FontSize, label_pos, *v ? GetColorU32(ImGuiCol_Text) : GetColorU32(ImGuiCol_TextDisabled), label);
+        window->DrawList->AddText(g.Font, g.FontSize, label_pos, LabelColor, label);
     ImGui::PopFontShadow();
 
     IMGUI_TEST_ENGINE_ITEM_INFO(id, label, window->DC.LastItemStatusFlags | ImGuiItemStatusFlags_Checkable | (*v ? ImGuiItemStatusFlags_Checked : 0));

@@ -124,21 +124,11 @@ void CGlobalData::CacheEntities()
 		{
 
 			if (!Pawn)
-			{
-				WRAP_IF_DEBUG(
-					std::cout << "Skipping NULL pawn (buffer list!)\n";
-				);
 				continue;
-			}
 
 #ifndef _DEBUG
 			if (Pawn == LocalPawn)
-			{
-				WRAP_IF_DEBUG(
-					std::cout << "Skipping local pawn (buffer list)!\n";
-				)
-					continue;
-			}
+				continue;
 #endif // !_DEBUG
 
 			const auto PawnName = FNV1A::Hash(GetNameFromFName(Pawn->ID()).c_str());
@@ -147,21 +137,26 @@ void CGlobalData::CacheEntities()
 			{
 
 				auto State = Pawn->PlayerState();
-				auto Weapon = Pawn->Weapon();
 
 				if (!State)
 					continue;
 
+				if (State->IsBot() && !Config::EnableBotCheck)
+					continue;
+
 				if (!Config::EnableTeamCheck && State->TeamID() == LocalPawn->PlayerState()->TeamID())
 					continue;
+
+				auto Weapon = Pawn->Weapon();
 
 				UnrealEngine::CCachedPlayer CachePlayer{};
 				CachePlayer.Pawn = Pawn;
 				CachePlayer.Mesh = Pawn->Mesh();
 				CachePlayer.PlayerState = State;
 				CachePlayer.Weapon = Weapon;
-				CachePlayer.Name = decrypt_player_name((uintptr_t)State);
-				CachePlayer.IsBot = CachePlayer.Name == ""; // bots don't have a name when decrypted
+				if (Config::EnableNameEsp)
+					CachePlayer.Name = decrypt_player_name((uintptr_t)State);
+				CachePlayer.IsBot = State->IsBot();
 				if (Config::EnableCurrentWeaponEsp)
 				{
 					uintptr_t WeaponNamePTR = Weapon->Definition()->Name();
@@ -170,11 +165,17 @@ void CGlobalData::CacheEntities()
 					else
 					{
 						uint32_t WeaponNameLength = Memory.Read<uint32_t>(WeaponNamePTR + 0x38);
-						wchar_t* WeaponName = new wchar_t[WeaponNameLength + 1];
-						Memory._HyperV->ReadMem(Memory.Read<PVOID>(WeaponNamePTR + 0x30), WeaponName, WeaponNameLength * sizeof(wchar_t));
-						std::wstring Wide(WeaponName);
-						delete[] WeaponName;
-						CachePlayer.WeaponName = std::string(Wide.begin(), Wide.end());
+						if (WeaponNameLength)
+						{
+							wchar_t* WeaponName = new wchar_t[WeaponNameLength + 1];
+							Memory._HyperV->ReadMem(Memory.Read<PVOID>(WeaponNamePTR + 0x30), WeaponName, WeaponNameLength * sizeof(wchar_t));
+							std::wstring Wide(WeaponName);
+							delete[] WeaponName;
+							CachePlayer.WeaponName = std::string(Wide.begin(), Wide.end());
+						}
+						else
+							CachePlayer.WeaponName = "None";
+
 					}
 				}
 				if (Config::EnableConsoleEsp)
@@ -189,22 +190,14 @@ void CGlobalData::CacheEntities()
 
 				TmpCache.emplace_back(CachePlayer);
 
-				WRAP_IF_DEBUG(
-					std::cout << "Added player to the list!\n";
-				)
-
-					continue;
-
 			}
+
 		}
-
-
 
 		PlayerSync.lock();
 		Players.clear();
 		Entities.clear();
 		Players = TmpCache;
-		Entities = TmpEntityCache;
 		PlayerSync.unlock();
 
 		LastListSize = ActorCount;

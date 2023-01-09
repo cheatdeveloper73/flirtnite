@@ -24,6 +24,58 @@ struct Vector3
 		return float(sqrtf(powf(v.x - x, 2.0) + powf(v.y - y, 2.0) + powf(v.z - z, 2.0)));
 	}
 
+	double AngleTo(Vector3 source, Vector3 dest)
+	{
+		if (source == dest) return 0.f;
+		double dot = Dot(dest);
+		return acos(dot);
+	}
+
+	FORCEINLINE Vector3 GetSafeNormal() const
+	{	
+		float SquareSum = x * x + y * y + z * z;
+		const double Scale = 1.0/sqrt(SquareSum);
+		return Vector3(x * Scale, y * Scale, z * Scale);
+	}
+
+	void VectorCrossProduct(const Vector3& a, const Vector3& b, Vector3& result)
+	{
+		result.x = a.y * b.z - a.z * b.y;
+		result.y = a.z * b.x - a.x * b.z;
+		result.z = a.x * b.y - a.y * b.x;
+	}
+
+	Vector3 Cross(const Vector3& vOther)
+	{
+		Vector3 res;
+		VectorCrossProduct(*this, vOther, res);
+
+		return res;
+	}
+
+	Vector3 Clamp()
+	{
+		if (x < -89.0f)
+			x = -89.0f;
+
+		if (x > 89.0f)
+			x = 89.0f;
+
+		while (y < -180.0f)
+			y += 360.0f;
+
+		while (y > 180.0f)
+			y -= 360.0f;
+
+		z = 0.0f;
+		return *this;
+	}
+
+	float Length2D() const
+	{
+		return sqrt(x * x + y * y);
+	}
+
 	std::string Print()
 	{
 
@@ -47,6 +99,10 @@ struct Vector3
 		return Vector3(x * number, y * number, z * number);
 	}
 
+	bool operator==(Vector3 number) const {
+		return (x == number.x && y == number.y && z == number.z);
+	}
+
 };
 
 struct Vector2
@@ -62,4 +118,12 @@ struct Vector2
 struct FRotator
 {
 	double Pitch, Yaw, Roll;
+	std::string Print()
+	{
+
+		std::stringstream ss;
+		ss << "Pitch : " << Pitch << " Yaw : " << Yaw << " Roll : " << Roll;
+		return ss.str();
+
+	}
 };

@@ -8,6 +8,7 @@
 #include "../sdk/unreal/tarray.h"
 #include "../sdk/unreal/string.h"
 #include "../sdk/unreal/color.h"
+#include "config.h"
 
 #define cast_this reinterpret_cast<uint64_t>(this)
 #define get_member(type, name, offset) type name() { return Memory.Read<type>(cast_this + offset); } 
@@ -40,7 +41,7 @@ namespace UnrealEngine
 
 	struct ViewTarget
 	{
-		void* Target;
+		uintptr_t Target;
 		OtherViewInf POV;
 	};
 
@@ -78,9 +79,10 @@ namespace UnrealEngine
 		get_member(float, LastRenderTime, 0x338)
 		get_member(FTransform, ComponentToWorld, 0x240)
 		get_member(Vector3, Unknown, 0x140)
+		set_member(Vector3, Scale, 0x158)
 		bool IsVisible()
 		{
-			return LastRenderTime() + 0.015f >= LastSubmitTime();
+			return LastRenderTime() + 0.04f >= LastSubmitTime();
 		}
 		FTransform GetBone(int index)
 		{
@@ -88,14 +90,14 @@ namespace UnrealEngine
 			auto BoneArray = Memory.Read<uintptr_t>(cast_this + 0x5C0);
 
 			if (!BoneArray)
-				BoneArray = Memory.Read<uintptr_t>(cast_this + (0x5C0 + 0x10));
+				BoneArray = Memory.Read<uintptr_t>(cast_this + 0x5C0 + 0x10);
 
 			return Memory.Read<FTransform>(BoneArray + (index * 0x60));
 		}
 		Vector3 GetBonePos(int index)
 		{
 			auto Bone = GetBone(index);
-			auto ComponentToWorld = Mesh::ComponentToWorld();
+			auto ComponentToWorld = Memory.Read<FTransform>(cast_this + 0x240);
 			D3DMATRIX Matrix = MatrixMultiplication(Bone.ToMatrixWithScale(), ComponentToWorld.ToMatrixWithScale());
 			auto Pos = Vector3{ Matrix._41, Matrix._42, Matrix._43 };
 			return Pos;
@@ -105,9 +107,10 @@ namespace UnrealEngine
 	class PlayerState
 	{
 	public:
-		get_member(uint32_t, TeamID, 0x6A1)
+		get_member(uint32_t, TeamID, 0x10e8)
 		get_member(float, Health, 0xe54)
 		get_member(float, Shield, 0xe5c)
+		get_member(bool, IsBot, 0x292)
 	};
 
 	struct FText {
@@ -151,6 +154,7 @@ namespace UnrealEngine
 		set_member(double, RimlightMultiplier, 0x5eb8)
 		get_member(UnrealEngine::Weapon*, Weapon, 0x8d8)
 		get_member(uintptr_t, ClassPrivate, 0x10)
+		set_member(float, TimeDialation, 0x3b8);
 	};
 
 	class PlayerController
@@ -172,6 +176,14 @@ namespace UnrealEngine
 		get_member(FRotator, ControlRotation, 0x300)
 		set_member(FRotator, ControlRotation, 0x300)
 		get_member(uintptr_t, CameraManager, 0x340)
+
+		void SetRotation(Vector3 Rotation)
+		{
+			Memory.Write<Vector3>(cast_this + 0x518, Rotation);
+		}
+
+		//get_member(Vector3, RotationInput, 0x520)
+		//set_member(Vector3, RotationInput, 0x520)
 
 	};
 
@@ -260,10 +272,27 @@ namespace UnrealEngine
 		if (vTransformed.z < 1.f)
 			return false;
 
-		double ScreenX = (Width / 2.0f) + vTransformed.x * (((Width / 2.0f) / tanf(Cam.FOV * (float)M_PI / 360.f))) / vTransformed.z;
-		double ScreenY = (Height / 2.0f) - vTransformed.y * (((Width / 2.0f) / tanf(Cam.FOV * (float)M_PI / 360.f))) / vTransformed.z;
+		if (Config::EnableWidescreenCompat)
+		{
+			float ratio = (float)Width / Height;
 
-		Out = Vector2(ScreenX, ScreenY);
+			if (ratio < 4.0f / 3.0f)
+				ratio = 4.0f / 3.0f;
+
+			float fov = ratio / (16.0f / 9.0f) * (float)tanf(Cam.FOV * M_PI / 360.0f);
+
+			double ScreenX = (Width / 2.0f) + vTransformed.x * (((Width / 2.0f) / fov)) / vTransformed.z;
+			double ScreenY = (Height / 2.0f) - vTransformed.y * (((Width / 2.0f) / fov)) / vTransformed.z;
+
+			Out = Vector2(ScreenX, ScreenY);
+		}
+		else
+		{
+			double ScreenX = (Width / 2.0f) + vTransformed.x * (((Width / 2.0f) / tanf(Cam.FOV * (float)M_PI / 360.f))) / vTransformed.z;
+			double ScreenY = (Height / 2.0f) - vTransformed.y * (((Width / 2.0f) / tanf(Cam.FOV * (float)M_PI / 360.f))) / vTransformed.z;
+
+			Out = Vector2(ScreenX, ScreenY);
+		}
 
 		return true;
 

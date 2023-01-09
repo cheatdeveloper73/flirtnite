@@ -22,9 +22,18 @@ bool CMemory::Initialize()
 			std::cout << "Failed to get Fortnite's PID.\n";
 		)
 
+		ERROR_MESSAGE("Failed to initialize. (Code: 0x3)");
+
 		return false; // failed to get the process id
 
 	}
+
+	#ifdef _RELEASE
+	Sleep(5000);
+	#endif
+
+	while (!FindWindowA("UnrealWindow", NULL))
+		Sleep(1000);
 
 	Window = FindWindowA("UnrealWindow", NULL);
 
@@ -35,6 +44,8 @@ bool CMemory::Initialize()
 			std::cout << "Failed to get Fortnite's window.\n";
 		)
 
+		ERROR_MESSAGE("Failed to initialize. (Code: 0x4)");
+
 		return false;
 
 	}
@@ -44,6 +55,8 @@ bool CMemory::Initialize()
 		WRAP_IF_DEBUG(
 			std::cout << "Failed to extend the processes' CR3.\n";
 		)
+
+		ERROR_MESSAGE("Failed to initialize. (Code: 0x5)");
 
 		return false;
 
@@ -57,10 +70,12 @@ bool CMemory::Initialize()
 			std::cout << "Failed to get Fortnite's base address..\n";
 		)
 
+		ERROR_MESSAGE("Failed to initialize. (Code: 0x6)");
+
 		return false;
 
 	}
-
+	
 	WRAP_IF_DEBUG(
 		std::cout << "Memory initialized.\n";
 	)

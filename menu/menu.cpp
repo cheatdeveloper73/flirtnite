@@ -1,6 +1,7 @@
 #include "menu.h"
 
 #include "../sdk/config.h"
+#include "../sdk/globaldata.h"
 
 struct tab
 {
@@ -127,7 +128,7 @@ void CMenu::Render()
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, AccentColor.x());
     ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, AccentColor.x());
 
-    ImGui::Begin("Stinkcheat", NULL, window_flags);
+    ImGui::Begin("rellant", NULL, window_flags);
     {
 
         auto draw = ImGui::GetForegroundDrawList();
@@ -139,13 +140,13 @@ void CMenu::Render()
         draw->AddRectFilled(pos + ImVec2(2, 4), pos + ImVec2(size.x - 2, 3), AccentColor.c());
         draw->AddRectFilled(pos + ImVec2(2, 5), pos + ImVec2(size.x - 2, 4), IM_COL32(74, 74, 74, 255));
 
-        ImGui::BeginChild("Tabs", ImVec2(85, size.y - 15), true);
+        ImGui::BeginChild("tabs", ImVec2(85, size.y - 15), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
         ImGui::PushFontShadow(IM_COL32(0, 0, 0, 255));
 
         ImGui::PushStyleColor(ImGuiCol_Text, AccentColor.x());
-        AlignForWidth(ImGui::CalcTextSize("stinkcheat").x);
-        ImGui::Text("stinkcheat");
+        AlignForWidth(ImGui::CalcTextSize("// rellant").x);
+        ImGui::Text("// rellant");
         ImGui::PopStyleColor();
 
         ImGui::Spacing();
@@ -156,13 +157,17 @@ void CMenu::Render()
             if (ImGui::Selectable(tab.tab_name, &tmp)) current_tab = tab.tab_id;
         }
 
+        ImGui::SetCursorPos(ImVec2(5, ImGui::GetWindowSize().y - 16));
+
+        ImGui::Text(Config::Username.c_str());
+
         ImGui::PopFontShadow();
 
         ImGui::EndChild();
 
         ImGui::SameLine();
 
-        ImGui::BeginChild("Content", ImVec2((size.x - 85) - 26, size.y - 15), true);
+        ImGui::BeginChild("content", ImVec2((size.x - 85) - 26, size.y - 15), true);
 
         switch (current_tab)
         {
@@ -170,7 +175,7 @@ void CMenu::Render()
         case 0: // aim
         {
 
-            ImGui::Checkbox("enable aimbot", &Config::EnableAimbot);
+            ImGui::Checkbox("enable aimbeot", &Config::EnableAimbot);
             ImGui::Text("aimbot key");
             ImGui::SameLine();
             ImGui::Keybind(&Config::AimbotKey, ImVec2(60, 16));
@@ -178,7 +183,7 @@ void CMenu::Render()
             ImGui::SliderFloat("aimbot fov", &Config::AimbotFOV, 0.f, 600.f, "%.1f");
             ImGui::Checkbox("enable smoothing", &Config::EnableAimbotSmoothing);
             if (Config::EnableAimbotSmoothing)
-                ImGui::SliderFloat("smoothing", &Config::AimbotSmoothing, 0.f, 100.f, "%.1f%%");
+                ImGui::SliderFloat("smoothing", &Config::AimbotSmoothing, 3.f, 100.f, "%.1f%%");
         
             ImGui::Checkbox("draw fov", &Config::ShowFOV);
             ImGui::SameLine();
@@ -205,6 +210,7 @@ void CMenu::Render()
             ImGui::SameLine();
             ImGui::ColorEdit4("box color invisible", &Config::BoxEspColorInVisible.r);
             ImGui::Combo("box esp style", &Config::BoxEspStyle, "standard\0world\0corners\0filled");
+            ImGui::Checkbox("boxes use bounds", &Config::BoxesUseBounds);
 
             ImGui::Checkbox("enable skeleton esp", &Config::EnableSkeletonEsp);
             ImGui::SameLine();
@@ -246,18 +252,17 @@ void CMenu::Render()
             ImGui::Text("menu accent color");
             ImGui::SameLine();
             ImGui::ColorEdit4("menu accent", &AccentColor.r);
-            ImGui::Checkbox("enable spinbot", &Config::EnableSpinbot);
-            ImGui::Text("spinbot key");
-            ImGui::SameLine();
-            ImGui::Keybind(&Config::SpinbotKey, ImVec2(60, 16));
-            ImGui::Checkbox("enable no-recoil", &Config::EnableNoRecoil);
-            ImGui::Checkbox("enable no-spread", &Config::EnableNoSpread);
             ImGui::Checkbox("enable crosshair", &Config::EnableCrosshair);
             ImGui::SameLine();
             ImGui::ColorEdit4("crosshair color", &Config::CrosshairColor.r);
             ImGui::Combo("crosshair style", &Config::CrosshairStyle, "standard\0circle\0swastika");
             ImGui::Checkbox("enable keybind list", &Config::KeybindList);
             ImGui::Checkbox("enable instant weapon switch", &Config::EnableInstantWeaponDeploy);
+            ImGui::Checkbox("enable widescreen compatability", &Config::EnableWidescreenCompat);
+            ImGui::PushFlagged();
+            ImGui::Checkbox("enable no-recoil", &Config::EnableNoRecoil);
+            ImGui::Checkbox("enable no-spread", &Config::EnableNoSpread);
+            ImGui::PopFlagged();
 
             break;
 

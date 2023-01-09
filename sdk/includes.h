@@ -35,3 +35,4 @@
 #else
 #define WRAP_IF_DEBUG(x)
 #endif
+#define ERROR_MESSAGE(x) MessageBoxA(NULL, x, NULL, NULL)
